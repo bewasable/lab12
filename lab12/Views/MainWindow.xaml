@@ -1,0 +1,22 @@
+﻿<Window x:Class="lab12.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:lab12"
+        mc:Ignorable="d"
+        Title="Телефонная книга" Height="500" Width="700">
+    <DockPanel>
+        <!-- Меню навигации -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Background="#F0F0F0">
+            <Button Content="Контакты" Command="{Binding ShowContactsCommand}" 
+                    Margin="5" Padding="10,5"/>
+            <Button Content="О программе" Command="{Binding ShowAboutCommand}" 
+                    Margin="5" Padding="10,5"/>
+        </StackPanel>
+
+        <!-- Область контента -->
+        <ContentControl Content="{Binding NavigationService.CurrentViewModel}" 
+                        Margin="10"/>
+    </DockPanel>
+</Window>
