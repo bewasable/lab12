@@ -18,24 +18,20 @@ namespace lab12
 
             var services = new ServiceCollection();
 
-            // ====================== SQL Server ======================
             string connectionString = "Server=localhost;Database=PhoneBookDB_Maltsev_2307e;Trusted_Connection=True;TrustServerCertificate=True;";
 
-            services.AddDbContext<PhoneBookContext>(options =>
+            // === Lab 14: Используем фабрику вместо AddDbContext ===
+            services.AddDbContextFactory<PhoneBookContext>(options =>
                 options.UseSqlServer(connectionString));
-            // =========================================================
 
-            // Сервисы
             services.AddSingleton<IDialogService, DialogService>();
             services.AddSingleton<INavigationService, NavigationService>();
 
-            // ViewModel'и
             services.AddTransient<ContactsListViewModel>();
             services.AddTransient<ContactEditViewModel>();
             services.AddTransient<AboutViewModel>();
             services.AddSingleton<MainWindowViewModel>();
 
-            // Главное окно
             services.AddSingleton<MainWindow>(sp =>
             {
                 var window = new MainWindow();
@@ -44,9 +40,7 @@ namespace lab12
             });
 
             var provider = services.BuildServiceProvider();
-            var mainWindow = provider.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            provider.GetRequiredService<MainWindow>().Show();
         }
     }
-
 }

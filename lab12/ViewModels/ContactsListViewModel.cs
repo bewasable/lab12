@@ -18,7 +18,7 @@ namespace lab12.ViewModels
     {
         private readonly IDialogService _dialogService;
         private readonly INavigationService _navigation;
-        private readonly PhoneBookContext _context;
+        private readonly IDbContextFactory<PhoneBookContext> _contextFactory;
 
         public ObservableCollection<Contact> Contacts { get; } = new();
 
@@ -26,23 +26,9 @@ namespace lab12.ViewModels
         private string _phone = "";
         private Contact? _selectedContact;
 
-        public string Name
-        {
-            get => _name;
-            set { _name = value; OnPropertyChanged(); }
-        }
-
-        public string Phone
-        {
-            get => _phone;
-            set { _phone = value; OnPropertyChanged(); }
-        }
-
-        public Contact? SelectedContact
-        {
-            get => _selectedContact;
-            set { _selectedContact = value; OnPropertyChanged(); }
-        }
+        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+        public string Phone { get => _phone; set { _phone = value; OnPropertyChanged(); } }
+        public Contact? SelectedContact { get => _selectedContact; set { _selectedContact = value; OnPropertyChanged(); } }
 
         public ICommand AddCommand { get; }
         public ICommand DeleteCommand { get; }
@@ -51,27 +37,25 @@ namespace lab12.ViewModels
         public ContactsListViewModel(
             IDialogService dialogService,
             INavigationService navigation,
-            PhoneBookContext context)
+            IDbContextFactory<PhoneBookContext> contextFactory)
         {
             _dialogService = dialogService;
             _navigation = navigation;
-            _context = context;
+            _contextFactory = contextFactory;
 
-            LoadContactsFromDatabase();
+            LoadContacts();
 
             AddCommand = new RelayCommand(_ => AddContact());
             DeleteCommand = new RelayCommand(p => DeleteContact(p as Contact));
             EditCommand = new RelayCommand(_ => EditContact());
         }
 
-        private void LoadContactsFromDatabase()
+        private void LoadContacts()
         {
             Contacts.Clear();
-            var contactsFromDb = _context.Contacts.ToList();
-            foreach (var contact in contactsFromDb)
-            {
-                Contacts.Add(contact);
-            }
+            using var context = _contextFactory.CreateDbContext();
+            foreach (var c in context.Contacts.ToList())
+                Contacts.Add(c);
         }
 
         private void AddContact()
@@ -88,18 +72,19 @@ namespace lab12.ViewModels
                 return;
             }
 
-            if (_context.Contacts.Any(c => c.Phone == Phone))
+            using var context = _contextFactory.CreateDbContext();
+            if (context.Contacts.Any(c => c.Phone == Phone))
             {
                 _dialogService.ShowWarning("Контакт с таким номером уже существует");
                 return;
             }
 
             var newContact = new Contact { Name = Name, Phone = Phone };
-            _context.Contacts.Add(newContact);
-            _context.SaveChanges();
+            context.Contacts.Add(newContact);
+            context.SaveChanges();
 
             Contacts.Add(newContact);
-            _dialogService.ShowInfo("Контакт успешно добавлен");
+            _dialogService.ShowInfo("Контакт добавлен");
 
             Name = "";
             Phone = "";
@@ -109,10 +94,15 @@ namespace lab12.ViewModels
         {
             if (contact == null) return;
 
-            if (_dialogService.ShowConfirmation($"Удалить контакт {contact.Name}?"))
+            if (_dialogService.ShowConfirmation($"Удалить {contact.Name}?"))
             {
-                _context.Contacts.Remove(contact);
-                _context.SaveChanges();
+                using var context = _contextFactory.CreateDbContext();
+                var toDelete = context.Contacts.Find(contact.Id);
+                if (toDelete != null)
+                {
+                    context.Contacts.Remove(toDelete);
+                    context.SaveChanges();
+                }
                 Contacts.Remove(contact);
                 _dialogService.ShowInfo("Контакт удалён");
             }
@@ -121,13 +111,9 @@ namespace lab12.ViewModels
         private void EditContact()
         {
             if (SelectedContact != null)
-            {
                 _navigation.NavigateTo<ContactEditViewModel>(SelectedContact);
-            }
             else
-            {
-                _dialogService.ShowWarning("Выберите контакт для редактирования");
-            }
+                _dialogService.ShowWarning("Выберите контакт");
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
